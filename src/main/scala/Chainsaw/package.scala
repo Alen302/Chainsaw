@@ -1,5 +1,5 @@
 import Chainsaw.NumericExt._
-import Chainsaw.edaFlow.Device._
+import Chainsaw.edaFlow._
 import cc.redberry.rings.scaladsl.IntZ
 import com.mathworks.engine.MatlabEngine
 import org.apache.commons.io.FileUtils
@@ -20,7 +20,6 @@ import scala.io.Source
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 import scala.sys.process.Process
-import scala.sys
 
 package object Chainsaw {
 
@@ -58,6 +57,7 @@ package object Chainsaw {
   val simWorkspace   = new File("simWorkspace")   // waveform
   val synthWorkspace = new File("synthWorkspace") // log & checkpoint
 
+  val xdcFileDir   = new File("src/main/resources/xdc")
   val unisimDir    = new File("src/main/resources/unisims") // for Xilinx primitives
   val dagOutputDir = new File("src/main/resources/dfgGenerated")
 
@@ -404,9 +404,9 @@ package object Chainsaw {
     try {
       val report = edaFlowType match {
         case SYNTH =>
-          VivadoTask.synth(gen.name, gen.implH, vu9p, Seq[File](), None, ChainsawSpinalConfig(gen))
+          VivadoTask.synth(gen.implH, gen.name, customizedConfig = ChainsawSpinalConfig(gen))
         case IMPL =>
-          VivadoTask.implModule(gen.name, gen.implH)
+          VivadoTask.implModule(gen.implH, gen.name, customizedConfig = ChainsawSpinalConfig(gen))
       }
 
       report.requireUtil(gen.vivadoUtilEstimation, requirementStrategy)

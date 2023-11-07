@@ -1,9 +1,10 @@
 package Chainsaw.arithmetic
 
+import Chainsaw.edaFlow.vivado.VivadoUtil
 import Chainsaw._
 import Chainsaw.device.LUT2
-import Chainsaw.edaFlow.vivado.VivadoUtil
 import spinal.core._
+import spinal.lib.StreamFifo
 
 import scala.math._
 

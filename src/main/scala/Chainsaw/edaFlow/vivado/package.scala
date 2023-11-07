@@ -1,7 +1,6 @@
 package Chainsaw.edaFlow
 
 import Chainsaw._
-import Chainsaw.edaFlow.Device._
 import Chainsaw.edaFlow.EdaFlowUtils.ParseReportUtils
 import org.slf4j.LoggerFactory
 import spinal.core._
@@ -37,9 +36,8 @@ package object vivado {
     val Frequency        = 1.0 / (ConstraintPeriod - Slack) * 1e9
 
     val utilization = device.deviceFamily match {
-      case UltraScale     => getUltrascaleWithHierarchy
-      case UltraScalePlus => getUltrascaleWithHierarchy
-      case Series7        => VivadoUtil() // TODO: implement a method for Series7
+      case UltraScale => getUltrascaleWithHierarchy
+      case Series7    => VivadoUtil() // TODO: implement a method for Series7
     }
 
     def getUltrascaleWithHierarchy: VivadoUtil = {

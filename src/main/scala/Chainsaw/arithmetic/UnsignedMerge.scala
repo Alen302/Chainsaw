@@ -1,6 +1,7 @@
 package Chainsaw.arithmetic
 
 import Chainsaw._
+import Chainsaw.edaFlow.vivado._
 import spinal.core.U
 
 trait UnsignedMerge extends ChainsawOperatorGenerator with Unaligned with FixedLatency {

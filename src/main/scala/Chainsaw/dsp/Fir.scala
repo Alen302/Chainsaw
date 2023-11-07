@@ -1,11 +1,12 @@
 package Chainsaw.dsp
 
 import Chainsaw._
-import Chainsaw.edaFlow.vivado.VivadoUtil
 import Chainsaw.io.pythonIo.runPythonModel
+import Chainsaw.edaFlow.vivado.VivadoUtil
 import spinal.core._
 
 import scala.language.postfixOps
+import scala.util.Random
 
 /** systolic fir for FPGAs, extremely efficient for Xilinx device
   */

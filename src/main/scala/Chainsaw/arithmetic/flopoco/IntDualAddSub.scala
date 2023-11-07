@@ -1,7 +1,8 @@
 package Chainsaw.arithmetic.flopoco
 
-import Chainsaw.{TestCase, _}
-import Chainsaw.edaFlow.Device._
+import Chainsaw._
+import Chainsaw.TestCase
+import Chainsaw.edaFlow.XilinxDeviceFamily
 import Chainsaw.edaFlow.vivado._
 import spinal.core._
 

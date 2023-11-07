@@ -1,7 +1,6 @@
 package Chainsaw.edaFlow.yosys
 
 import Chainsaw._
-import Chainsaw.edaFlow.Device._
 import Chainsaw.edaFlow._
 import org.apache.commons.io.FileUtils
 import org.slf4j._
@@ -9,32 +8,23 @@ import spinal.core._
 import spinal.lib.DoCmd
 
 import java.io.File
+import scala.collection.mutable.ArrayBuffer
 
-/** The class which can be used to run YosysTask
-  * @param designInput
-  *   the YosysFlow design source, it can be file dir format or Component format or mixed input of dir and Component
-  * @param device
-  *   the device which will be used in edaFlow to synthesis or implementation
-  * @param optimizeOption
-  *   specify the optimize option will be used in edaFlow
-  * @param blackBoxSet
-  *   specify which module will be viewed as BlackBox(will change v or sv file)
-  * @tparam T
-  *   the class of Component or its subClass
-  */
 case class YosysFlow[T <: Module](
-    designInput: ChainsawEdaFlowInput,
+    designInput: ChainsawEdaFullInput[T],
     device: ChainsawDevice,
     optimizeOption: YosysOptimizeOption,
-    blackBoxSet: Option[Set[String]] = None
+    blackBoxSet: Option[Set[String]]         = None,
+    memBinaryFile: Option[Map[String, File]] = None
 ) extends EdaFlow(
       designInput.getRtlDir(),
-      designInput.getWorkspaceDir(),
-      designInput.getTopModuleName(),
+      designInput.workspaceDir,
+      designInput.topModuleName,
       device,
       SYNTH,
       optimizeOption,
-      blackBoxSet
+      blackBoxSet,
+      memBinaryFile
     ) {
 
   require(
@@ -44,7 +34,7 @@ case class YosysFlow[T <: Module](
 
   val yosysLogger = LoggerFactory.getLogger(s"YosysFlow")
 
-  val genScriptDir = new File(designInput.getWorkspaceDir(), s"genScript_${designInput.getTopModuleName()}")
+  val genScriptDir = new File(designInput.workspaceDir, s"genScript_${designInput.topModuleName}")
 
   if (genScriptDir.exists()) genScriptDir.delete()
 
@@ -70,7 +60,7 @@ case class YosysFlow[T <: Module](
 
     device match {
       case generic: GenericDevice =>
-        script += s"synth  -top ${designInput.getTopModuleName()}  "
+        script += s"synth  -top ${designInput.topModuleName}  "
         optimizeOption match {
           case yosysOption: YosysGeneralOptimizeOption =>
             if (yosysOption.isFlatten) script += s"-flatten  "
@@ -87,7 +77,7 @@ case class YosysFlow[T <: Module](
         script += s"\n"
 
       case xilinx: XilinxDevice =>
-        script += s"synth_xilinx  -top ${designInput.getTopModuleName()}  "
+        script += s"synth_xilinx  -top ${designInput.topModuleName}  "
         xilinx.deviceFamily match {
           case UltraScale     => script += s"-family xcu  "
           case Series7        => script += s"-family xc7  "

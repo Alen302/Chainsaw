@@ -1,10 +1,10 @@
 package Chainsaw.arithmetic.flopoco
 
 import Chainsaw._
-import Chainsaw.edaFlow.Device._
 import Chainsaw.edaFlow.vivado._
 import spinal.core._
 import spinal.lib._
+import Chainsaw.edaFlow._
 
 import scala.language.postfixOps
 

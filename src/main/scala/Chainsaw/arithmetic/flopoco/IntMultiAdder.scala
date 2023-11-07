@@ -1,11 +1,13 @@
 package Chainsaw.arithmetic.flopoco
 
 import Chainsaw._
-import Chainsaw.edaFlow.Device.{UltraScale, XilinxDeviceFamily}
+import Chainsaw.edaFlow._
 import Chainsaw.edaFlow.vivado._
 import spinal.core.{IntToBuilder, _}
 
+import java.io.File
 import scala.language.postfixOps
+import scala.util.Random
 
 /** A component adding n integers, bithead based. If wIn=1 it is also a population count.
   *
@@ -73,7 +75,7 @@ case class IntMultiAdder(
 
 object IntMultiAdder {
   def main(args: Array[String]): Unit = {
-    println(scala.sys.env.contains("FLOPOCO"))
+    println(sys.env.contains("FLOPOCO"))
     val test = IntMultiAdder(UltraScale, 50 MHz, 8, 8, true)
     println(test.moduleName)
   }

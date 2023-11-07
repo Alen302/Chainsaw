@@ -1,9 +1,10 @@
 package Chainsaw.memory
 
 import Chainsaw._
-import Chainsaw.edaFlow.vivado._
 import spinal.core._
 import spinal.lib._
+import Chainsaw._
+import Chainsaw.edaFlow.vivado._
 
 import scala.language.postfixOps
 

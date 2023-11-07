@@ -1,7 +1,7 @@
 package Chainsaw.crypto
 
-import Chainsaw._
 import Chainsaw.edaFlow.vivado.VivadoUtil
+import Chainsaw._
 import spinal.core.{U, _}
 
 trait ModularReductionAttribute {

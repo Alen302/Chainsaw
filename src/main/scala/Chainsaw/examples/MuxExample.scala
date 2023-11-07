@@ -1,11 +1,12 @@
 package Chainsaw.examples
 
-import Chainsaw._
-import Chainsaw.edaFlow.Device.vu9p
-import Chainsaw.edaFlow.vivado._
 import spinal.core._
+import spinal.core.sim._
+import spinal.lib._
+import spinal.lib.fsm._
+import Chainsaw._
+import Chainsaw.edaFlow.vivado._
 
-import java.io.File
 import scala.language.postfixOps
 
 case class MuxExample(width: Int) extends Component {
@@ -17,5 +18,5 @@ case class MuxExample(width: Int) extends Component {
 
 object MuxExample extends App {
   //  VivadoSynth(MuxExample(1), "synthMux1", ChainsawSpinalConfig())
-  VivadoTask.synth("MuxExample", MuxExample(8), vu9p, Seq[File](), None, ChainsawSpinalConfig())
+  VivadoTask.synth(MuxExample(8), "synthMux8", customizedConfig = ChainsawSpinalConfig())
 }

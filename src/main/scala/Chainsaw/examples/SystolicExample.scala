@@ -1,9 +1,12 @@
 package Chainsaw.examples
 
-import Chainsaw._
 import Chainsaw.edaFlow.vivado._
 import spinal.core._
+import Chainsaw._
+import Chainsaw.intel.QuartusFlow
+import Chainsaw.edaFlow.vivado._
 
+import java.io.File
 import scala.language.postfixOps
 import scala.util.Random
 
@@ -63,6 +66,6 @@ case class SystolicSpinal(bs: Seq[BigInt]) extends Component {
 object SystolicExample extends App {
   val bs = Seq.fill(5)(BigInt(16, Random) - pow2(15))
   //  VivadoSynth(SystolicExample(), "synthXilinxSystolic")
-  VivadoTask.synthModule("SystolicSpinal", SystolicSpinal(bs))
+  VivadoTask.synth(SystolicSpinal(bs), "synthOurSystolic")
   //  new QuartusFlow(SystolicSpinal(bs)).impl() // this architecture is also suitable for Intel Device(Cyclone V)
 }

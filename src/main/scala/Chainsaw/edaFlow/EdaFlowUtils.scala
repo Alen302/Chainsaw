@@ -1,12 +1,12 @@
 package Chainsaw.edaFlow
 
-import Chainsaw.edaFlow.Device.ChainsawDevice
 import Chainsaw.phases
 import org.apache.commons.io.FileUtils
-import spinal.core._
+import spinal.core.{Component, SpinalConfig}
 
 import java.io.File
-import scala.collection.mutable.ArrayBuffer
+import java.text.SimpleDateFormat
+import java.util.Calendar
 import scala.io.Source
 import scala.util.Try
 
@@ -38,6 +38,20 @@ object EdaFlowUtils {
   }
 
   object EdaDirectoryUtils {
+//    def genTargetWorkspace(target: String, topModuleName: Option[String], workspaceDir: File): File = {
+//      topModuleName match {
+//        case Some(name) => new File(workspaceDir, s"gen${target}_$name")
+//        case None =>
+//          val dateFormat = new SimpleDateFormat("yyyyMMdd")
+//          val cla        = Calendar.getInstance()
+//          cla.setTimeInMillis(System.currentTimeMillis())
+//          val date   = dateFormat.format(cla.getTime)
+//          val hour   = cla.get(Calendar.HOUR_OF_DAY).toString
+//          val min    = cla.get(Calendar.MINUTE).toString
+//          val second = cla.get(Calendar.SECOND).toString
+//          new File(workspaceDir, s"gen${target}_InferredTop_${date}_${hour}_${min}_$second")
+//      }
+//    }
 
     def parseRtlDirFor(designDirs: Seq[File], supportedFileTypes: Seq[String] = Seq(".v", ".sv")): Seq[File] = {
       val supportedFiles = designDirs.flatMap { dir =>
@@ -72,17 +86,13 @@ object EdaFlowUtils {
 
     }
 
-    def genRtlSourcesAndDeviceFrom(
+    def genRtlSourcesFromComponent(
         design: => Component,
         customizedConfig: Option[SpinalConfig] = None,
         topModuleName: String,
         workspaceDir: File,
         fileTypeFilter: Seq[String]
-    ): (ArrayBuffer[File], ArrayBuffer[ChainsawDevice], ArrayBuffer[File]) = {
-
-      val resultDirs    = ArrayBuffer[File]()
-      val resultDevice  = ArrayBuffer[ChainsawDevice]()
-      val resultXdcFile = ArrayBuffer[File]()
+    ): Seq[File] = {
 
       val genRtlDir = new File(workspaceDir, s"genRtl_$topModuleName")
       if (genRtlDir.exists()) genRtlDir.delete()
@@ -98,38 +108,11 @@ object EdaFlowUtils {
           config.addTransformationPhase(new phases.FfIo)
       }
 
-      config.generateVerilog {
-        inVirtualGlob {
-          def parseBlackBoxBlock() = {
-            design.walkComponents {
-              case blackBox: BlackBox =>
-                resultDirs ++= blackBox.listRTLPath.toSeq.map(new File(_))
-              case _ =>
-            }
-          }
-
-          def parseBlock() = design match {
-            case board: Component with Board =>
-              resultDevice += board.device
-              resultXdcFile += board.xdcFile
-              parseBlackBoxBlock()
-            case _ =>
-              parseBlackBoxBlock()
-          }
-
-          parseBlock()
-        }
-        design
-      }
-
+      config.generateVerilog(design)
       if (customizedConfig.isDefined) {
         if (genRtlDir.exists()) genRtlDir.delete()
-        val targetFile = new File(config.targetDirectory)
-        FileUtils.copyFileToDirectory(new File(targetFile, s"$topModuleName.v"), genRtlDir)
-        val generatedBinFile = targetFile.listFiles().toSeq.filter(_.getAbsolutePath.endsWith(".bin"))
-        generatedBinFile.foreach(FileUtils.copyFileToDirectory(_, genRtlDir))
+        FileUtils.copyFileToDirectory(new File(config.targetDirectory, s"$topModuleName.v"), genRtlDir)
       }
-
       if (config.oneFilePerComponent) {
         val lstFile = Source.fromFile(
           new File(
@@ -142,7 +125,7 @@ object EdaFlowUtils {
           )
         )
 
-        resultDirs ++= lstFile
+        lstFile
           .getLines()
           .map { line => new File(line) }
           .map(_.getAbsolutePath)
@@ -150,14 +133,13 @@ object EdaFlowUtils {
           .map(new File(_))
 
       } else {
-        resultDirs ++= genRtlDir
+        genRtlDir
           .listFiles()
           .toSeq
           .map(_.getAbsolutePath)
           .filter(path => fileTypeFilter.exists(fileType => path endsWith fileType))
           .map(new File(_))
       }
-      (resultDirs.distinct, resultDevice, resultXdcFile)
     }
   }
 }

@@ -1,41 +1,35 @@
 package Chainsaw.edaFlow.vcs
 
 import Chainsaw._
-import Chainsaw.edaFlow.Device.generic
 import Chainsaw.edaFlow._
-import org.apache.commons.io.FileUtils
-import org.slf4j._
-import spinal.core._
-import spinal.core.sim._
-import spinal.sim._
 
 import java.io.File
 import scala.collection.mutable.ArrayBuffer
 import scala.io.Source
+import org.apache.commons.io.FileUtils
+import spinal.lib._
+import spinal.core._
+import spinal.core.sim._
+import spinal.lib.sim._
+import org.scalatest.funsuite._
+import org.slf4j._
+import spinal.lib.DoCmd
 
-/** The class which can be used to run VcsTask
-  * @param designInput
-  *   the vcsFlow design source file input
-  * @param compileOption
-  *   specify the optimize option will be used in vcsFlow
-  * @param customizedConfig
-  *   specify SpinalConfig will used in VcsFlow
-  * @param macroFile
-  *   the macro file will be add to VcsFlow
-  */
 case class VcsFlow(
     designInput: ChainsawEdaDirInput,
     compileOption: VcsCompileOption,
-    customizedConfig: Option[SpinalConfig] = None,
-    macroFile: Option[Seq[File]]           = None
+    customizedConfig: Option[SpinalConfig]   = None,
+    macroFile: Option[Seq[File]]             = None,
+    memBinaryFile: Option[Map[String, File]] = None
 ) extends EdaFlow(
-      designDirs     = designInput.getRtlDir(),
-      workspaceDir   = designInput.getWorkspaceDir(),
-      topModuleName  = designInput.getTopModuleName(),
+      designDirs     = designInput.designDirs,
+      workspaceDir   = designInput.workspaceDir,
+      topModuleName  = designInput.topModuleName,
       device         = generic,
       taskType       = SIM,
       optimizeOption = compileOption,
-      blackBoxSet    = None
+      blackBoxSet    = None,
+      memBinaryFile  = memBinaryFile
     ) {
 
   require(
@@ -45,7 +39,7 @@ case class VcsFlow(
 
   val vcsLogger = LoggerFactory.getLogger(s"VcsFlow")
 
-  val vcsWorkDir    = new File(designInput.getWorkspaceDir(), s"genByVcsFlow_${designInput.getTopModuleName()}")
+  val vcsWorkDir    = new File(designInput.workspaceDir, s"genByVcsFlow_${designInput.topModuleName}")
   var compileFlag   = ArrayBuffer[String]()
   var elaborateFlag = ArrayBuffer[String]()
   var runSimFlag    = ArrayBuffer[String]()
@@ -69,7 +63,7 @@ case class VcsFlow(
     // generate fileList by includeDirs(if exist)
     val flattenDirs        = ArrayBuffer[String]()
     val supportedFileTypes = Seq(".v", ".sv")
-    designInput.getRtlDir().foreach { dir =>
+    designInput.designDirs.foreach { dir =>
       if (dir.getAbsolutePath.endsWith(".f") || dir.getAbsolutePath.endsWith(".lst")) {
         val listFile = Source.fromFile(dir)
         listFile
@@ -83,7 +77,7 @@ case class VcsFlow(
           flattenDirs.append(dir.getAbsolutePath)
       }
     }
-    FileUtils.write(fileList, flattenDirs.distinct.mkString("\n"))
+    FileUtils.write(fileList, flattenDirs.mkString("\n"))
 
     // for coverage
     FileUtils.write(
@@ -98,9 +92,9 @@ case class VcsFlow(
     compileFlag.append("-V")
     compileFlag.append("-notice")
     compileFlag.append(s"-kdb")
-    if (designInput.getRtlDir().nonEmpty) compileFlag.append(s"-f ${fileList.getAbsolutePath}")
+    if (designInput.designDirs.nonEmpty) compileFlag.append(s"-f ${fileList.getAbsolutePath}")
     if (macroFile.isDefined) compileFlag.append(s"-f ${macroFile.get.map(_.getAbsoluteFile).mkString(" ")}")
-    compileFlag.append(s"-top ${designInput.getTopModuleName()}")
+    compileFlag.append(s"-top ${designInput.topModuleName}")
 
     elaborateFlag.append("-LDFLAGS -Wl,--no-as-needed")
     elaborateFlag.append(s"-j${compileOption.parallelNumber}")
@@ -133,12 +127,12 @@ case class VcsFlow(
         elaborateFlag.append(s"-cm line+cond+fsm+tgl+path+branch+assert")
         runSimFlag.append(s"-cm line+cond+fsm+tgl+path+branch+assert")
     }
-    if (designInput.getRtlDir().nonEmpty)
+    if (designInput.designDirs.nonEmpty)
       elaborateFlag.append(s"-cm_assert_hier ${coverageHierConfigFile.getAbsolutePath}")
     elaborateFlag.append(s"-cm_dir ${vcsWorkDir.getAbsolutePath}/cov.vdb")
     elaborateFlag.append(s"-cm_name cov_${vcsWorkDir.getName}")
     elaborateFlag.append(s"-cm_log cm_compile.log")
-    elaborateFlag.append(s"-top ${designInput.getTopModuleName()}")
+    elaborateFlag.append(s"-top ${designInput.topModuleName}")
     if (compileOption.incrementCompile) elaborateFlag.append("-M")
     if (compileOption.enableMemHierarchy) elaborateFlag.append("+memcbk")
     if (compileOption.noTimingCheck) elaborateFlag.append("+notimingcheck")
