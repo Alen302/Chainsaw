@@ -2,18 +2,19 @@ package Chainsaw
 
 import Chainsaw.edaFlow._
 import Chainsaw.edaFlow.vcs._
-import Chainsaw.io.pythonIo._
 import spinal.core._
-import spinal.core.sim.SpinalSimBackendSel._
 import spinal.core.sim._
 import spinal.lib._
 import spinal.sim.SimThread
 
-import java.io.File
-import java.nio.file.Paths
 import scala.collection.mutable
 import scala.collection.mutable.ArrayBuffer
 import scala.util.Random
+import Chainsaw.io.pythonIo._
+import spinal.core.sim.SpinalSimBackendSel._
+
+import java.io.File
+import java.nio.file.Paths
 
 case class ChainsawTest(
     testName: String = "testTemp",
@@ -50,7 +51,8 @@ case class ChainsawTest(
             noTimingCheck      = true
           ),
           customizedConfig = Some(spinalConfig),
-          macroFile        = None
+          macroFile        = None,
+          memBinaryFile    = None
         ).getSpinalSimConfig(withWave).workspaceName(testName)
       case _ => ???
     }
