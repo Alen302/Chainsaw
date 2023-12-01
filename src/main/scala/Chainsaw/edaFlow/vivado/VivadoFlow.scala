@@ -5,6 +5,7 @@ import Chainsaw.edaFlow._
 import org.apache.commons.io.FileUtils
 import org.slf4j._
 import spinal.core._
+import edaFlow.EdaFlowUtils._
 import spinal.lib.DoCmd
 
 import java.io.File
@@ -454,5 +455,18 @@ object VivadoTask {
     }
     report.showInfosReport()
     report
+  }
+
+  def genBoardBitStream(
+      design: => Module with Board,
+      name: String
+  ): VivadoReport = {
+
+    val (device, xdcFile) = inVirtualGlob {
+      (design.device, design.xdcFile)
+    }
+
+    genModuleBitStream(design, name, device, Some(xdcFile))
+//    genModuleBitStream(design, name, design.device, Some(design.xdcFile))
   }
 }
