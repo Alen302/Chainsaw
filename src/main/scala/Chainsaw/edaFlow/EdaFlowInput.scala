@@ -1,22 +1,20 @@
 package Chainsaw.edaFlow
 
-import Chainsaw.edaFlow.Device._
-import Chainsaw.edaFlow.EdaFlowUtils.EdaDirectoryUtils.{genRtlSourcesAndDeviceFrom, parseRtlDirFor}
+import Chainsaw.edaFlow.EdaFlowUtils.EdaDirectoryUtils.{genRtlSourcesFromComponent, parseRtlDirFor}
 import spinal.core._
-
 import java.io.File
+import scala.collection.mutable.ArrayBuffer
 
-sealed trait ChainsawEdaFlowInput {
-  def getWorkspaceDir(): File
+abstract class ChainsawEdaFlowInput[T <: Module](
+    design: => T,
+    val designDirs: Seq[File],
+    val workspaceDir: File,
+    val topModuleName: String,
+    val customizedConfig: Option[SpinalConfig] = None
+) {
+  def module = design
 
-  def getTopModuleName(): String
-
-  def getRtlDir(): Seq[File]
-
-  def getDevice(candidate: ChainsawDevice): ChainsawDevice
-
-  def getXdcFile(candidate: File): File
-
+  def getRtlDir(supportedFileTypes: Seq[String] = Seq(".v", ".sv")): Seq[File]
 }
 
 class ChainsawEdaModuleInput[T <: Module](
@@ -24,31 +22,23 @@ class ChainsawEdaModuleInput[T <: Module](
     workspaceDir: File,
     topModuleName: String,
     customizedConfig: Option[SpinalConfig] = None
-) extends ChainsawEdaFlowInput {
+) extends ChainsawEdaFlowInput(design, Seq[File](), workspaceDir, topModuleName, customizedConfig) {
 
-  val supportedFileTypes: Seq[String] = Seq(".v", ".sv")
-  val (rtlResources, boardDevice, boardXdcFile) = genRtlSourcesAndDeviceFrom(
-    design,
-    customizedConfig,
-    topModuleName,
-    workspaceDir,
-    supportedFileTypes
-  )
+  var finishRtlDirGen                 = false
+  val rtlResources: ArrayBuffer[File] = ArrayBuffer()
 
-  override def getWorkspaceDir(): File = workspaceDir
-
-  override def getTopModuleName(): String = topModuleName
-
-  override def getRtlDir(): Seq[File] = rtlResources
-
-  override def getDevice(candidate: ChainsawDevice = vu9p): ChainsawDevice = {
-    boardDevice += candidate
-    boardDevice.head
-  }
-
-  override def getXdcFile(candidate: File): File = {
-    boardXdcFile += candidate
-    boardXdcFile.head
+  def getRtlDir(supportedFileTypes: Seq[String] = Seq(".v", ".sv")): Seq[File] = {
+    if (!finishRtlDirGen) {
+      rtlResources ++= genRtlSourcesFromComponent(
+        design,
+        customizedConfig,
+        topModuleName,
+        workspaceDir,
+        supportedFileTypes
+      )
+      finishRtlDirGen = true
+    }
+    rtlResources
   }
 }
 
@@ -65,20 +55,18 @@ class ChainsawEdaDirInput(
     designDirs: Seq[File],
     workspaceDir: File,
     topModuleName: String
-) extends ChainsawEdaFlowInput {
+) extends ChainsawEdaFlowInput(null, Seq[File](), workspaceDir, topModuleName, None) {
 
-  val supportedFileTypes: Seq[String] = Seq(".v", ".sv")
-  val rtlResources                    = parseRtlDirFor(designDirs, supportedFileTypes)
+  var finishRtlDirGen                 = false
+  val rtlResources: ArrayBuffer[File] = ArrayBuffer()
 
-  override def getWorkspaceDir(): File = workspaceDir
-
-  override def getTopModuleName(): String = topModuleName
-
-  override def getRtlDir(): Seq[File] = rtlResources
-
-  override def getDevice(candidate: ChainsawDevice): ChainsawDevice = candidate
-
-  override def getXdcFile(candidate: File): File = candidate
+  def getRtlDir(supportedFileTypes: Seq[String] = Seq(".v", ".sv")): Seq[File] = {
+    if (!finishRtlDirGen) {
+      rtlResources ++= parseRtlDirFor(designDirs, supportedFileTypes)
+      finishRtlDirGen = true
+    }
+    rtlResources
+  }
 }
 
 object ChainsawEdaDirInput {
@@ -95,34 +83,24 @@ class ChainsawEdaFullInput[T <: Module](
     workspaceDir: File,
     topModuleName: String,
     customizedConfig: Option[SpinalConfig] = None
-) extends ChainsawEdaFlowInput {
+) extends ChainsawEdaFlowInput(design, designDirs, workspaceDir, topModuleName, customizedConfig) {
 
-  val supportedFileTypes: Seq[String] = Seq(".v", ".sv")
-  val (rtlResources, boardDevice, boardXdcFile) = genRtlSourcesAndDeviceFrom(
-    design,
-    customizedConfig,
-    topModuleName,
-    workspaceDir,
-    supportedFileTypes
-  )
+  var finishRtlDirGen                 = false
+  val rtlResources: ArrayBuffer[File] = ArrayBuffer()
 
-  override def getWorkspaceDir(): File = workspaceDir
-
-  override def getTopModuleName(): String = topModuleName
-
-  override def getRtlDir(): Seq[File] = {
-    rtlResources ++= parseRtlDirFor(designDirs, supportedFileTypes)
+  def getRtlDir(supportedFileTypes: Seq[String] = Seq(".v", ".sv")): Seq[File] = {
+    if (!finishRtlDirGen) {
+      rtlResources ++= parseRtlDirFor(designDirs, supportedFileTypes)
+      rtlResources ++= genRtlSourcesFromComponent(
+        design,
+        customizedConfig,
+        topModuleName,
+        workspaceDir,
+        supportedFileTypes
+      )
+      finishRtlDirGen = true
+    }
     rtlResources
-  }
-
-  override def getDevice(candidate: ChainsawDevice): ChainsawDevice = {
-    boardDevice += candidate
-    boardDevice.head
-  }
-
-  override def getXdcFile(candidate: File): File = {
-    boardXdcFile += candidate
-    boardXdcFile.head
   }
 }
 
