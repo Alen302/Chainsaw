@@ -2,6 +2,7 @@
 *.log
 *.bak
 *.mat
+*.bin
 
 # sbt specific
 .cache/
