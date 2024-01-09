@@ -25,7 +25,7 @@ case class ChainsawTest(
     errorSegmentsShown: Int              = 10,
     doInterruptInsertion: Boolean        = true,
     withWave: Boolean                    = true,
-    genMakeFileScript: Boolean           = true
+    genShellScript: Boolean              = true
 ) {
 
   import gen._
@@ -34,13 +34,13 @@ case class ChainsawTest(
     val spinalConfig = ChainsawSpinalConfig(gen)
 
     gen.simBackEnd match {
-      case VERILATOR =>
+      case SpinalSimBackendSel.VERILATOR =>
         val ret = SimConfig
           .workspacePath(Paths.get(simWorkspace.getAbsolutePath, "verilator").toFile.getAbsolutePath)
           .workspaceName(testName)
           .withConfig(spinalConfig)
         if (withWave) ret.withFstWave else ret
-      case VCS =>
+      case SpinalSimBackendSel.VCS =>
         VcsFlow(
           ChainsawEdaDirInput(Seq[File](), new File(simWorkspace, "vcs"), gen.name),
           compileOption = VcsCompileOption(
@@ -242,7 +242,7 @@ case class ChainsawTest(
   logger.info(s"start simulation for $testName")
   logger.info(s"current naive list: ${naiveSet.mkString(" ")}")
 
-  val compiled = if (genMakeFileScript) simConfig.compileWithScript(gen.getImplH) else simConfig.compile(gen.getImplH)
+  val compiled = if (genShellScript) simConfig.compileWithScript(gen.getImplH) else simConfig.compile(gen.getImplH)
 
   compiled.doSim { dut =>
     import dut.{clockDomain, flowInPointer, flowOutPointer}
@@ -354,6 +354,13 @@ case class ChainsawTest(
     npzData.foreach { case (flow, decimals) => exportSignal(new File(s"${flow.getName()}.npz"), decimals) }
     logger.info("data exported")
   }
+
+  val runScriptDir = simConfig._workspaceName match {
+    case null => Paths.get(simConfig._workspacePath, compiled.report.toplevelName)
+    case _    => Paths.get(simConfig._workspacePath, simConfig._workspaceName)
+  }
+
+  if (genShellScript) DoCmd.doCmd(cmd = "bash ./run_verdi", path = runScriptDir.toAbsolutePath.toString)
 
   /** -------- check & show
     * --------

@@ -1,6 +1,6 @@
 allowSynth: true
 
-allowImpl: false
+allowImpl: true
 
 verbose: 1
 

@@ -1,7 +1,8 @@
 package Chainsaw.device
 
+import spinal.core.{ClockDomain, _}
 import Chainsaw._
-import spinal.core._
+import spinal.core.fiber.Handle
 
 import java.io.File
 import scala.language.postfixOps
@@ -43,16 +44,33 @@ object MULTMODE extends Enumeration {
   val AB1, AD0B1, AAD01, AD0AD01 = Value
 }
 
-import Chainsaw.device.MULTMODE._
+object DSPPIPELINE extends Enumeration {
+  type DSPPIPELINE = Value
+  // postfix expression
+  val LASTFIRST, AVERAGE = Value
+}
+import DSPPIPELINE._
+import MULTMODE._
 
 // ports for cascading
-case class DSPCASC() extends Bundle {
+case class DSPCASCIN() extends Bundle {
   val ACIN        = UInt(30 bits)
   val BCIN        = UInt(18 bits)
   val PCIN        = UInt(48 bits)
   val CARRYCASCIN = Bool()
   val MULTSIGNIN  = Bool()
   val all         = Seq(ACIN, BCIN, PCIN, CARRYCASCIN, MULTSIGNIN)
+  all.foreach(signal => signal.setName("" + signal.getPartialName()))
+}
+
+case class DSPCASCOUT() extends Bundle {
+  val ACOUT        = UInt(30 bits)
+  val BCOUT        = UInt(18 bits)
+  val PCOUT        = UInt(48 bits)
+  val CARRYCASCOUT = Bool()
+  val MULTSIGNOUT  = Bool()
+  val all          = Seq(ACOUT, BCOUT, PCOUT, CARRYCASCOUT, MULTSIGNOUT)
+  all.foreach(signal => signal.setName("" + signal.getPartialName()))
 }
 
 case class DSPCONTROL() extends Bundle { // 4
@@ -60,6 +78,8 @@ case class DSPCONTROL() extends Bundle { // 4
   val INMODE     = Bits(5 bits)
   val OPMODE     = Bits(9 bits)
   val CARRYINSEL = Bits(3 bits)
+  val all        = Seq(ALUMODE, INMODE, OPMODE, CARRYINSEL)
+  all.foreach(signal => signal.setName("" + signal.getPartialName()))
 }
 
 case class DSPINPUT() extends Bundle { // 5
@@ -69,6 +89,8 @@ case class DSPINPUT() extends Bundle { // 5
   val C       = in UInt (48 bits)
   val D       = in UInt (27 bits)
   val CARRYIN = in Bool ()
+  val all     = Seq(A, B, C, D, CARRYIN)
+  all.foreach(signal => signal.setName("" + signal.getPartialName()))
 }
 
 case class DSPOUTPUT() extends Bundle { // 7
@@ -77,6 +99,8 @@ case class DSPOUTPUT() extends Bundle { // 7
   val XOROUT                        = out Bits (8 bits)
   val OVERFLOW, UNDERFLOW           = out Bool ()
   val PATTERNBDETECT, PATTERNDETECT = out Bool ()
+  val all                           = Seq(P, CARRYOUT, XOROUT, OVERFLOW, UNDERFLOW, PATTERNBDETECT, PATTERNDETECT)
+  all.foreach(signal => signal.setName("" + signal.getPartialName()))
 }
 
 case class DSPCEs() extends Bundle { //
@@ -99,8 +123,8 @@ case class DSP48E2(attrs: DSPAttrs) extends Unisim { // This is actually a Black
   // control
   val INST = in(DSPCONTROL())
   // inputs/outputs for cascading
-  val CASCDATAIN  = in(DSPCASC())
-  val CASCDATAOUT = out(DSPCASC())
+  val CASCDATAIN  = in(DSPCASCIN())
+  val CASCDATAOUT = out(DSPCASCOUT())
   // ClockEnables & ReSeTs
   val CEs  = in(DSPCEs())
   val RSTs = in(DSPRSTs())
@@ -108,27 +132,10 @@ case class DSP48E2(attrs: DSPAttrs) extends Unisim { // This is actually a Black
   val DATAIN  = in(DSPINPUT())
   val DATAOUT = out(DSPOUTPUT())
 
-  // set names to be the same as primitive ports
-  INST.setName("") // drop the prefix
-  DATAIN.setName("")
-  DATAOUT.setName("")
-
-  CASCDATAIN.ACIN.setName("ACIN")
-  CASCDATAIN.BCIN.setName("BCIN")
-  CASCDATAIN.PCIN.setName("PCIN")
-  CASCDATAIN.CARRYCASCIN.setName("CARRYCASCIN")
-  CASCDATAIN.MULTSIGNIN.setName("MULTSIGNIN")
-
-  CASCDATAOUT.ACIN.setName("ACOUT")
-  CASCDATAOUT.BCIN.setName("BCOUT")
-  CASCDATAOUT.PCIN.setName("PCOUT")
-  CASCDATAOUT.CARRYCASCIN.setName("CARRYCASCOUT")
-  CASCDATAOUT.MULTSIGNIN.setName("MULTSIGNOUT")
-
   val inputs  = Seq(INST, CASCDATAIN, DATAIN, CEs, RSTs)
   val outputs = Seq(CASCDATAOUT, DATAOUT)
 
-  mapClockDomain(clock = CLK)
+  mapClockDomain(clockDomain, clock = CLK)
 
   addPrimitive("DSP48E2")
 }
@@ -222,40 +229,54 @@ class DSPAttrBuilder {
   def setALU() = {}
 
   // FIXME: following strategy is only available for MAC
-  def setLatency(latency: Int) = {
-    def setStage(stage: Int, set: Boolean): Unit = {
-      val value = if (set) 1 else 0
+  def setLatency(latency: Int, pipelineStrategy: DSPPIPELINE = LASTFIRST) = {
+    latency match {
+      case 4 =>
+        // attribute
+        AREG = 2; ACASCREG = 2; BREG = 2; BCASCREG = 2
+      case 3 =>
+        // attribute
+        AREG = 1; ACASCREG = 1; BREG = 1; BCASCREG = 1
+      case _ =>
+        // attribute
+        AREG = 0; ACASCREG = 0; BREG = 0; BCASCREG = 0
+    }
+
+    def setInnerDelayAttr(stage: Int, value: Int, pipelineStrategy: DSPPIPELINE = LASTFIRST) = {
       stage match {
         case 1 =>
-          DREG      = value
+          ADREG     = value
           INMODEREG = value
         case 2 =>
-          ADREG = value
+          DREG = value
         case 3 =>
-          MREG       = value
-          CREG       = value
-          CARRYINREG = value
-          OPMODEREG  = value
-          ALUMODEREG = value
+          pipelineStrategy match {
+            case LASTFIRST =>
+              MREG       = value
+              CREG       = value
+              CARRYINREG = value
+              OPMODEREG  = value
+              ALUMODEREG = value
+            case AVERAGE => PREG = value
+          }
+
         case 4 =>
-          PREG = value
+          pipelineStrategy match {
+            case LASTFIRST => PREG = value
+            case AVERAGE =>
+              MREG       = value
+              CREG       = value
+              CARRYINREG = value
+              OPMODEREG  = value
+              ALUMODEREG = value
+          }
       }
     }
 
-    val sets = latency match {
-      case 0 => Seq()
-      case 1 => Seq(3)
-      case 2 => Seq(3, 4)
-      case 3 => Seq(2, 3, 4)
-      case 4 => Seq(1, 2, 3, 4)
-    }
-    (1 to 4).foreach(i => if (sets.contains(i)) setStage(i, set = true) else setStage(i, set = false))
-
-    latency match {
-      case 4 => AREG = 2; ACASCREG = 2; BREG = 2; BCASCREG = 2;
-      case 3 => AREG = 1; ACASCREG = 1; BREG = 1; BCASCREG = 1;
-      case _ => AREG = 0; ACASCREG = 0; BREG = 0; BCASCREG = 0;
-    }
+    val stages = Range.inclusive(1, 4)
+    val sets = stages
+      .takeRight(latency)
+    stages.foreach(i => if (sets.contains(i)) setInnerDelayAttr(i, value = 1) else setInnerDelayAttr(i, value = 0))
 
     this
   }

@@ -18,14 +18,14 @@ class BitHeapSolverTest extends ChainsawFlatSpec {
     //    Seq.fill(5)(ArithInfo(100, 0)) ++ Seq.fill(5)(ArithInfo(100, 0, isPositive = false, time = 1)), // mixed, diff time
     //    Seq.fill(5)(ArithInfo(10, 2)) ++ Seq.fill(5)(ArithInfo(10, 1, isPositive = false, time = 1)), // mixed, diff time
 
+//    RectangularInfos(
+//      256 to 256 by 5,
+//      32 to 32 by 5
+//    ), // rectangle, positive, same time
     RectangularInfos(
-      100 to 100 by 60,
-      100 to 100 by 60
-    ), // rectangle, positive, same time
-    RectangularInfos(
-      100 to 100 by 60,
-      100 to 100 by 60,
-      withNoise = true
+      16 to 16 by 16,
+      256 to 256 by 256,
+      withNoise = false
     ) // rectangle, positive, same time, withNoise
 //    RectangularInfos(
 //      50 to 100 by 60,
@@ -309,7 +309,7 @@ class BitHeapSolverTest extends ChainsawFlatSpec {
       full  = true,
       naive = false,
       synth = false,
-      impl  = false
+      impl  = true
     )
   )
 

@@ -6,6 +6,7 @@ import Chainsaw.edaFlow._
 import org.apache.commons.io.FileUtils
 import org.slf4j._
 import spinal.core._
+import spinal.core.internals.PhaseCreateComponent
 import spinal.lib.DoCmd
 
 import java.io.File
@@ -231,12 +232,26 @@ object VivadoTask {
       xdcFile: Option[File],
       customizedConfig: SpinalConfig
   ): VivadoReport = {
-    val edaInput = inVirtualGlob(
-      if (design == null) ChainsawEdaDirInput(includeRtlFile, new File(synthWorkspace, name), name)
-      else if (includeRtlFile.nonEmpty)
+
+    // TODO: need to fix
+    var isNull = false
+    try SpinalVerilog(design)
+    catch {
+      case e: NullPointerException => isNull = true
+      case e: Throwable            =>
+    }
+
+    val edaInput = inVirtualGlob {
+      if (isNull) {
+        ChainsawEdaDirInput(includeRtlFile, new File(synthWorkspace, name), name)
+      } else if (includeRtlFile.nonEmpty) {
         ChainsawEdaFullInput(design, includeRtlFile, new File(synthWorkspace, name), name, Some(customizedConfig))
-      else ChainsawEdaModuleInput(design, new File(synthWorkspace, name), name, Some(customizedConfig))
-    )
+      } else {
+        ChainsawEdaModuleInput(design, new File(synthWorkspace, name), name, Some(customizedConfig))
+      }
+    }
+
+    println(isNull)
 
     val task = VivadoFlow(
       edaInput,
@@ -301,17 +316,4 @@ object VivadoTask {
 
   def fastGenDirBitStream: (String, Seq[File]) => VivadoReport =
     genDirBitStream(_, vu9p, _, None, xilinxDefaultSpinalConfig)
-
-//  def genBoardBitStream(
-//      design: => Module with Board,
-//      name: String
-//  ): VivadoReport = {
-//
-//    val (device, xdcFile) = inVirtualGlob {
-//      (design.device, design.xdcFile)
-//    }
-//
-//    genModuleBitStream(design, name, vu9p, None, xilinxDefaultSpinalConfig)
-////    genModuleBitStream(design, name, design.device, Some(design.xdcFile))
-//  }
 }

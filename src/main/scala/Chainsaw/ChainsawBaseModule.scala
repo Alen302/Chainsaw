@@ -43,8 +43,8 @@ abstract class ChainsawBaseModule(val gen: ChainsawBaseGenerator) extends Compon
   // SpinalHDL will generate multiple copies of same module when multiple modules contains a same ROM file
 
   // FIXME: "already used once for a different layout", when multiple modules contains a same ROM file
-//  setDefinitionName(gen.name)
-  setName(gen.name, weak = true)
+  setDefinitionName(gen.name)
+  //  setName(gen.name, weak = true)
 
   /** -------- connection utils
     * --------

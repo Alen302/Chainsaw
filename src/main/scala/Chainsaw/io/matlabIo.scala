@@ -11,6 +11,7 @@ import spinal.core._
 
 import java.nio.file.Paths
 import scala.io.Source
+import scala.tools.nsc.classpath.FileUtils
 
 object matlabIo {
 
@@ -36,8 +37,9 @@ object matlabIo {
     *   String
     */
   def writeFile(fileName: String, content: String) = {
-    val filepath = Paths.get(matlabWorkingSpace.toString, fileName)
-    val writer   = new java.io.FileWriter(filepath.toFile)
+    val targetFile = Paths.get(matlabWorkingSpace.toString, fileName).toFile
+    if (!targetFile.exists()) targetFile.getParentFile.mkdir()
+    val writer = new java.io.FileWriter(targetFile)
     writer.write(content)
     writer.flush()
     writer.close()
@@ -50,7 +52,8 @@ object matlabIo {
     *   String
     */
   def writeFileIncrementally(fileName: String, content: String) = {
-    val filepath   = Paths.get(matlabWorkingSpace.toString, fileName)
+    val filepath = Paths.get(matlabWorkingSpace.toString, fileName)
+    require(filepath.toFile.exists(), s"the file ${filepath} isn't exist!")
     val oldContent = Source.fromFile(filepath.toString).getLines().mkString("\n")
     val writer     = new java.io.FileWriter(filepath.toFile)
     writer.write(oldContent + content)
