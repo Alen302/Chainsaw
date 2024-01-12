@@ -132,7 +132,7 @@ class DspPETest extends AnyFlatSpec {
 //        SimTimeout(10000)
 //      }
 
-    VivadoTask.fastSynthModule("DspPE", DspPE("0", dataWidth, latency, mode, blockSliceConfig, isCascade))
+    VivadoTask.synthModule("DspPE", DspPE("0", dataWidth, latency, mode, blockSliceConfig, isCascade))
   }
 
 }

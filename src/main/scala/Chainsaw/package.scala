@@ -1,6 +1,5 @@
 import Chainsaw.NumericExt._
 import Chainsaw.edaFlow.Device._
-import Chainsaw.edaFlow._
 import cc.redberry.rings.scaladsl.IntZ
 import com.mathworks.engine.MatlabEngine
 import org.apache.commons.io.FileUtils
@@ -21,6 +20,7 @@ import scala.io.Source
 import scala.language.implicitConversions
 import scala.reflect.ClassTag
 import scala.sys.process.Process
+import scala.sys
 
 package object Chainsaw {
 
@@ -94,8 +94,8 @@ package object Chainsaw {
     ) // list of generators which should be implemented by its naive version
 
   def setAsNaive(
-      generator: Any*
-  ): naiveSet.type = // add a generator to the naiveSet
+                  generator: Any*
+                ): naiveSet.type = // add a generator to the naiveSet
     naiveSet += generator.getClass.getSimpleName.replace("$", "")
 
   var testCaseIndex = 0
@@ -254,9 +254,9 @@ package object Chainsaw {
     /** replace fragment of current flow, pipeline valid & last when needed
       */
     def mapFragment(
-        func: Seq[AFix] => Seq[AFix],
-        latency: Int = 0
-    ): ChainsawFlow = {
+                     func: Seq[AFix] => Seq[AFix],
+                     latency: Int = 0
+                   ): ChainsawFlow = {
       val temp        = func(flow.fragment)
       val newFragment = Vec(temp)
       val ret         = new Flow(new Fragment(newFragment))
@@ -286,17 +286,17 @@ package object Chainsaw {
     }
 
     def >>>(
-        that: ChainsawBaseGenerator
-    ): Flow[Fragment[Vec[AFix]]] = {
+             that: ChainsawBaseGenerator
+           ): Flow[Fragment[Vec[AFix]]] = {
       assert(that.inputTypes.length == 1)
       val retFlows = this.split.map(_ >> (that))
       retFlows.head.mapFragment(_ => retFlows.flatMap(_.fragment))
     }
 
     def >>>(
-        that: ChainsawBaseGenerator with Dynamic,
-        control: Vec[AFix]
-    ): Flow[Fragment[Vec[AFix]]] = {
+             that: ChainsawBaseGenerator with Dynamic,
+             control: Vec[AFix]
+           ): Flow[Fragment[Vec[AFix]]] = {
       assert(that.inputTypes.length == 1)
       val retFlows = this.split.map(_ >> (that, control))
       retFlows.head.mapFragment(_ => retFlows.flatMap(_.fragment))
@@ -396,17 +396,17 @@ package object Chainsaw {
   }
 
   def ChainsawEdaFlow(
-      gen: ChainsawBaseGenerator,
-      edaFlowType: EdaFlowType,
-      requirementStrategy: UtilRequirementStrategy
-  ) = {
+                       gen: ChainsawBaseGenerator,
+                       edaFlowType: EdaFlowType,
+                       requirementStrategy: UtilRequirementStrategy
+                     ) = {
     atSimTime = false // set environment
     try {
       val report = edaFlowType match {
         case SYNTH =>
           VivadoTask.synth(gen.name, gen.implH, vu9p, Seq[File](), None, ChainsawSpinalConfig(gen))
         case IMPL =>
-          VivadoTask.implModule(gen.name, gen.implH, vu9p, None, ChainsawSpinalConfig(gen))
+          VivadoTask.implModule(gen.name, gen.implH)
       }
 
       report.requireUtil(gen.vivadoUtilEstimation, requirementStrategy)
@@ -416,14 +416,14 @@ package object Chainsaw {
   }
 
   def ChainsawSynth(
-      gen: ChainsawBaseGenerator,
-      requirementStrategy: UtilRequirementStrategy = DefaultRequirement
-  ) = ChainsawEdaFlow(gen, SYNTH, requirementStrategy)
+                     gen: ChainsawBaseGenerator,
+                     requirementStrategy: UtilRequirementStrategy = DefaultRequirement
+                   ) = ChainsawEdaFlow(gen, SYNTH, requirementStrategy)
 
   def ChainsawImpl(
-      gen: ChainsawBaseGenerator,
-      requirementStrategy: UtilRequirementStrategy = DefaultRequirement
-  ) = ChainsawEdaFlow(gen, IMPL, requirementStrategy)
+                    gen: ChainsawBaseGenerator,
+                    requirementStrategy: UtilRequirementStrategy = DefaultRequirement
+                  ) = ChainsawEdaFlow(gen, IMPL, requirementStrategy)
 
   /** -------- util functions
     * --------

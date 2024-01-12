@@ -1,19 +1,10 @@
 package Chainsaw
 
 import Chainsaw.edaFlow.Device._
-import Chainsaw.edaFlow.EdaFlowUtils.EdaDirectoryUtils._
-import Chainsaw.edaFlow.vivado.VivadoUtil
-import org.apache.commons.io.FileUtils
 import spinal.core._
-import spinal.core.fiber.Handle
-import spinal.core.internals.{Phase, PhaseContext, PhaseCreateComponent}
+import spinal.core.internals.PhaseContext
 
 import java.io.File
-import java.text.SimpleDateFormat
-import java.util.Calendar
-import scala.collection.mutable.ArrayBuffer
-import scala.io.Source
-import scala.util.Try
 
 package object edaFlow {
 
@@ -68,9 +59,6 @@ package object edaFlow {
   def inVirtualGlob[T](func: => T): T = {
     val old = GlobalData.get
 
-    /* TODO:need to add Phases
-     *  bug1: when access default ClockDomain in Component, this function will throw a NullPointerException(not create default ClockDomain in new GlobalData)
-     * */
     val virtualGlob = new GlobalData(SpinalConfig())
     virtualGlob.phaseContext = new PhaseContext(SpinalConfig())
     GlobalData.set(virtualGlob)

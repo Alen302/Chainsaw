@@ -1,4 +1,5 @@
 package Chainsaw.memory
+
 object RamPortType extends Enumeration {
   type RamPortType = Value
   val READ, WRITE, READWRITE = Value

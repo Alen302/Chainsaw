@@ -1,11 +1,7 @@
 package Chainsaw.examples
 
 import spinal.core._
-import spinal.core.sim._
 import spinal.lib._
-import spinal.lib.sim._
-import spinal.lib.fsm._
-import spinal.lib.bus._
 
 case class P2SCC(bitWidth: Int, factor: Int) extends Component {
   val slow                  = in Vec (Bits(bitWidth bits), factor)

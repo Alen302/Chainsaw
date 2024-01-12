@@ -1,4 +1,5 @@
 package Chainsaw.examples
+
 import com.xilinx.rapidwright.design.tools.RelocationTools
 import com.xilinx.rapidwright.design.{Design, DesignTools, Net, SiteInst}
 import com.xilinx.rapidwright.device.SiteTypeEnum
